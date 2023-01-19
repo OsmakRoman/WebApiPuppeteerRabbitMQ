@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+   </head>
+<body>
+
+    <div style="text-align: center;">
+        <h1  id="title" > WebApiPuppeteer HTML to PDF Converter<br>with<img  id = "logo" src="images/logo-rabbitmq.svg" ></h1>
+            <form id="upload_form" enctype="multipart/form-data" method="post">
+                <div id="btn" >
+                    <label for="file1">Convert</label>
+                </div>
+                <input type="file" accept = ".html" name="file1" id="file1"  style="visibility:hidden;" onchange="uploadFile()"><br>
+                <progress  id="progressBar" value="0" max="100" ></progress>
+                <h2 id="status" ></h2>
+            </form>
+    </div>
+
+  <script>
+
+    let timerId;
+
+    function _(el) {
+        return document.getElementById(el);
+    }
+
+    function uploadFile() {
+        var file = _("file1").files[0];
+        if (file == undefined) return;
+        var formdata = new FormData();
+        formdata.append("file1", file);
+        var xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener("progress", progressHandler, false);
+        xhr.addEventListener("load", uploadCompleteHandler, false);
+        xhr.open("POST", "http://localhost:5114/converter",true); 
+        xhr.send(formdata);
+        _("file1").value = "";
+    }
+
+    function downloadFile(){
+        _("status").innerHTML = '<p>PDF Downloaded</p>';
+    }
+
+    function progressHandler(event) {
+        var percent = (event.loaded / event.total) * 100;
+        _("progressBar").value = Math.round(percent);
+        _("status").innerHTML = Math.round(percent) + "% uploaded... Please Wait";
+    }
+
+    function uploadCompleteHandler(event) {
+        _("status").innerHTML = '<a>Conversion in progress. Please wait...</a>';
+        _("progressBar").value = 0; 
+        readinessCheck (event.target.responseText);
+    }
+
+    function readinessCheck (id) {
+        if (id === "File is not html"){
+            _("status").innerHTML = "File is not HTML";
+            return;
+        }
+        if (id === "File is empty"){
+            _("status").innerHTML = "File is empty";
+            return;
+        }
+        timerId = setInterval( ()=>{
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", "http://localhost:5114/converter/ready/" + id, true);                  
+        xmlhttp.timeout = 200;
+        xmlhttp.onreadystatechange = function(){
+            if(xmlhttp.readyState == 4 && xmlhttp.status == 200 && xmlhttp.responseText === "No"){
+                console.log("File with id " + id + " is not ready");}
+            if(xmlhttp.readyState == 4 && xmlhttp.status == 200 && xmlhttp.responseText === "Yes"){
+                console.log("File with id " + id + " is READY!!!");
+                clearInterval(timerId);
+                onFileReady(id);}}
+        xmlhttp.send();}, 1000);
+    }
+
+    function onFileReady (id){
+        _("status").innerHTML = '<a href="http://localhost:5114/converter/' + id + '"onclick="downloadFile()">PDF Download</a>';
+    }
+        
+
+  </script>
+
+</body>
+</html>
+
+<style>
+
+    h1
+    {
+        margin: 20px;
+    }
+
+    #logo
+    {
+        width: 190px;
+        height: 31px;
+        margin: 20px 0px 0px 15px;
+    }
+
+    #title
+    {
+        color: maroon;
+    }
+
+    #btn
+    {
+        padding: 12px 8px 0px 8px;
+        margin: 0px auto 0px auto;
+        font-size: 14px;
+        border: 2px solid grey;
+        border-radius: 5px;
+        background: gainsboro;
+        color: rgb(84, 126, 29);
+        width: 100px;
+        height: 40px;
+    }
+
+    label 
+    {
+        font-size: 25px ;
+    }
+
+    progress
+    {
+        width:600px;
+    }
+
+</style>
